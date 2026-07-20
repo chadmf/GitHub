@@ -10,7 +10,7 @@
 
   vars:
     # Default Python virtual environment path
-    venv_path: "{{ lookup('env', 'HOME') }}/.venv"
+    venv_path: "{{ lookup('env', 'HOME') }}/.venv_headroom"
 
     # CLI Tools (Formulae)
     homebrew_formulae:
@@ -25,6 +25,10 @@
       - claude                  # Claude Desktop App
       - claude-code             # Claude Code CLI Agent
       - google-cloud-sdk        # Google Cloud CLI (gcloud)
+
+    # Python packages installed into venv_path via uv
+    python_packages:
+      - "headroom-ai[all]"
 
   tasks:
     - name: Check for Homebrew installation
@@ -58,3 +62,20 @@
       changed_when:
         - "'was successfully installed' in brew_cask_res.stdout or 'Installing' in brew_cask_res.stdout"
         - "'already installed' not in brew_cask_res.stderr"
+
+    - name: Check for default Python virtual environment
+      ansible.builtin.stat:
+        path: "{{ venv_path }}"
+      register: venv_check
+
+    - name: Create default Python virtual environment with uv
+      ansible.builtin.command:
+        cmd: "uv venv {{ venv_path }}"
+      when: not venv_check.stat.exists
+
+    - name: Install Python packages into virtual environment
+      ansible.builtin.command:
+        cmd: "uv pip install --python {{ venv_path }}/bin/python {{ item }}"
+      loop: "{{ python_packages }}"
+      register: uv_pip_res
+      changed_when: "'Installed' in uv_pip_res.stdout or 'Downloading' in uv_pip_res.stdout"
