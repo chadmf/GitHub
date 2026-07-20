@@ -10,7 +10,7 @@
 
   vars:
     # Default Python virtual environment path
-    venv_path: "{{ lookup('env', 'HOME') }}/.venv_headroom"
+    venv_path: "{{ lookup('env', 'HOME') }}/.venv"
 
     # CLI Tools (Formulae)
     homebrew_formulae:
@@ -29,6 +29,11 @@
     # Python packages installed into venv_path via uv
     python_packages:
       - "headroom-ai[all]"
+
+    # Persistent Headroom proxy (runs from venv via launchd)
+    headroom_port: 8787
+    headroom_backend: anthropic
+    headroom_mode: token
 
   tasks:
     - name: Check for Homebrew installation
@@ -79,3 +84,25 @@
       loop: "{{ python_packages }}"
       register: uv_pip_res
       changed_when: "'Installed' in uv_pip_res.stdout or 'Downloading' in uv_pip_res.stdout"
+
+    - name: Check Headroom persistent deployment status
+      ansible.builtin.command:
+        cmd: "{{ venv_path }}/bin/headroom install status"
+      register: headroom_status
+      changed_when: false
+      failed_when: false
+
+    - name: Deploy persistent Headroom proxy from virtual environment
+      ansible.builtin.command:
+        argv:
+          - "{{ venv_path }}/bin/headroom"
+          - deploy
+          - --no-docker
+          - --port
+          - "{{ headroom_port }}"
+          - --backend
+          - "{{ headroom_backend }}"
+          - --mode
+          - "{{ headroom_mode }}"
+      when: headroom_status.rc != 0 or 'No deployment profile' in (headroom_status.stderr | default('')) or 'No deployment profile' in (headroom_status.stdout | default(''))
+
