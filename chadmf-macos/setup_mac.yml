@@ -1,0 +1,60 @@
+---
+- name: Setup Apple Silicon macOS Developer Environment
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  # Ensure Homebrew and standard system binaries are in PATH
+  environment:
+    PATH: "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:{{ lookup('env', 'PATH') }}"
+
+  vars:
+    # Default Python virtual environment path
+    venv_path: "{{ lookup('env', 'HOME') }}/.venv"
+
+    # CLI Tools (Formulae)
+    homebrew_formulae:
+      - gh                       # GitHub CLI
+      - uv                       # Fast Python package installer & resolver
+
+    # GUI Applications & Cask Tools (Casks)
+    homebrew_casks:
+      - iterm2                  # iTerm2 Terminal
+      - github                  # GitHub Desktop
+      - cursor                  # Cursor AI Editor
+      - claude                  # Claude Desktop App
+      - claude-code             # Claude Code CLI Agent
+      - google-cloud-sdk        # Google Cloud CLI (gcloud)
+
+  tasks:
+    - name: Check for Homebrew installation
+      ansible.builtin.stat:
+        path: /opt/homebrew/bin/brew
+      register: brew_check
+
+    - name: Install Homebrew
+      ansible.builtin.shell: >
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      when: not brew_check.stat.exists
+
+    - name: Update Homebrew
+      ansible.builtin.command: brew update
+      changed_when: false
+
+    - name: Install CLI packages (Formulae)
+      ansible.builtin.command:
+        cmd: "brew install {{ item }}"
+      loop: "{{ homebrew_formulae }}"
+      register: brew_formula_res
+      changed_when:
+        - "'Pouring' in brew_formula_res.stdout or 'Installing' in brew_formula_res.stdout or '✔︎' in brew_formula_res.stdout"
+        - "'already installed' not in brew_formula_res.stderr"
+
+    - name: Install macOS Applications & Casks
+      ansible.builtin.command:
+        cmd: "brew install --cask {{ item }}"
+      loop: "{{ homebrew_casks }}"
+      register: brew_cask_res
+      changed_when:
+        - "'was successfully installed' in brew_cask_res.stdout or 'Installing' in brew_cask_res.stdout"
+        - "'already installed' not in brew_cask_res.stderr"
