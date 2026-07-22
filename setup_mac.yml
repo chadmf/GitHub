@@ -16,6 +16,7 @@
     homebrew_formulae:
       - gh                       # GitHub CLI
       - uv                       # Fast Python package installer & resolver
+      - podman                   # Podman CLI
 
     # GUI Applications & Cask Tools (Casks)
     homebrew_casks:
@@ -51,23 +52,27 @@
       ansible.builtin.command: brew update
       changed_when: false
 
+    - name: Get installed Homebrew formulae
+      ansible.builtin.command: brew list --formula -1
+      register: installed_formulae
+      changed_when: false
+
     - name: Install CLI packages (Formulae)
       ansible.builtin.command:
         cmd: "brew install {{ item }}"
       loop: "{{ homebrew_formulae }}"
-      register: brew_formula_res
-      changed_when:
-        - "'Pouring' in brew_formula_res.stdout or 'Installing' in brew_formula_res.stdout or '✔︎' in brew_formula_res.stdout"
-        - "'already installed' not in brew_formula_res.stderr"
+      when: item not in installed_formulae.stdout_lines
+
+    - name: Get installed Homebrew casks
+      ansible.builtin.command: brew list --cask -1
+      register: installed_casks
+      changed_when: false
 
     - name: Install macOS Applications & Casks
       ansible.builtin.command:
         cmd: "brew install --cask {{ item }}"
       loop: "{{ homebrew_casks }}"
-      register: brew_cask_res
-      changed_when:
-        - "'was successfully installed' in brew_cask_res.stdout or 'Installing' in brew_cask_res.stdout"
-        - "'already installed' not in brew_cask_res.stderr"
+      when: item not in installed_casks.stdout_lines
 
     - name: Check for default Python virtual environment
       ansible.builtin.stat:
