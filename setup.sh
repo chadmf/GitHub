@@ -19,6 +19,7 @@ source "${VENV_DIR}/bin/activate"
 echo "==> Installing Ansible..."
 pip install --quiet --upgrade pip
 pip install --quiet ansible
+pip install --quiet ansible-builder
 
 echo "==> Installing required Ansible collections..."
 ansible-galaxy collection install community.general 
