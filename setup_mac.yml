@@ -25,6 +25,7 @@
       - claude                  # Claude Desktop App
       - claude-code             # Claude Code CLI Agent
       - google-cloud-sdk        # Google Cloud CLI (gcloud)
+      - podman-desktop          # Podman Desktop
 
     # Python packages installed into venv_path via uv
     python_packages:
