@@ -17,6 +17,7 @@
       - gh                       # GitHub CLI
       - uv                       # Fast Python package installer & resolver
       - podman                   # Podman CLI
+      - tmux                     # Terminal multiplexer
 
     # GUI Applications & Cask Tools (Casks)
     homebrew_casks:
